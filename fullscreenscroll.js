@@ -21,7 +21,6 @@ export default class FSS{
         
                 setTimeout(function(){me.scrollAllow = true}, me.timeOffset);
             }
-            
         }
 
         window.addEventListener('wheel', handleScroll);
