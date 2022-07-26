@@ -18,13 +18,14 @@ export default class FSS{
         if(!this.allowScroll){
             return;
         }
-
+        var delay = 0;
         this.allowScroll = false;
 
         if(event.deltaY > 0){
             this.containers.every(function(container){
                 if(container.canForward){
                     container.forward();
+                    delay = container.delay;
                     return false;
                 }
                 else{
@@ -36,6 +37,7 @@ export default class FSS{
             this.revcontainers.every(function(container){
                 if(container.canBackward){
                     container.downward();
+                    delay = container.delay;
                     return false;
                 }
                 else{
@@ -44,29 +46,33 @@ export default class FSS{
             });
         }
 
-        setTimeout(() => {this.allowScroll = true}, 0);
+        setTimeout(() => {this.allowScroll = true}, delay);
     }
 
-    addContainer(containerSelector, screensSelector, type = "default"){
+    addContainer(containerSelector, screensSelector, type = "default", selfDelay = 0){
 
         switch(type){
             case "first":
                 var container = new FirstContainer(containerSelector, screensSelector);
+                container.delay = selfDelay;
                 this.containers.push(container);
                 break;
             
             case "bottom":
                 var container = new BottomContainer(containerSelector, screensSelector);
+                container.delay = selfDelay;
                 this.containers.push(container);
                 break;
 
             case "top":
                 var container = new TopContainer(containerSelector, screensSelector);
+                container.delay = selfDelay;
                 this.containers.push(container);
                 break;
 
             default:
                 var container = new Container(containerSelector, screensSelector);
+                container.delay = selfDelay;
                 this.containers.push(container);
                 break;
         }
@@ -86,6 +92,7 @@ class Container{
         this.stepRatio = 6;
         this.offset = this.startTranslate;
         this.limit = Math.abs(this.startTranslate) - this.containerHeight;
+        this.delay = 0;
 
         this.canForward = true;
         this.canBackward = false;
