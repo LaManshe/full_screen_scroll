@@ -104,6 +104,7 @@ class Container{
     forward(){
         var step = this.stepForwardCalculate();
 
+        
         this.container.style.transform = "translateY(" + (step) + "px)";
 
         this.offset = step;
@@ -116,7 +117,6 @@ class Container{
             this.offset = this.startTranslate;
             this.container.style.transform = "translateY(" + (this.offset) + "px)";
         }
-
         
         if(this.offset == this.startTranslate){
             this.canForward = true;
@@ -124,7 +124,7 @@ class Container{
             
             return;
         }
-        if(Math.abs(this.offset) < Math.abs(this.startTranslate) && Math.abs(this.offset) > Math.abs(this.limit)){
+        if(this.offset < Math.abs(this.startTranslate) && this.offset > this.limit){
             this.canForward = true;
             this.canBackward = true;
             
@@ -189,10 +189,18 @@ class FirstContainer extends Container{
     constructor(...args){
         super(...args);
 
-        this.screenNow = 1;
+        this.limit = Math.abs(this.startTranslate) - this.containerHeight + this.screens[0].offsetHeight;
     }
 
-    forward(){
+    stepForwardCalculate(){
+        return Math.round(this.offset - this.containerHeight / this.screensCount);
+    }
+    
+    stepBackwardCalculate(){
+        return Math.round(this.offset + this.containerHeight / this.screensCount);
+    }
+
+    /* forward(){
         var step = 0;
         if(this.screens.length > 1){
             step = - this.screens[this.screenNow - 1].clientHeight;
@@ -258,7 +266,7 @@ class FirstContainer extends Container{
             
             return;
         }
-    }
+    } */
 }
 
 class BottomContainer extends Container{
