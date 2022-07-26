@@ -1,4 +1,210 @@
 export default class FSS{
+    constructor(){
+        this.containers = [];
+        this.revcontainers = [];
+
+        this.allowScroll;
+    }
+
+    initWheelEvent(){
+        this.revcontainers = [].concat(this.containers).reverse();
+        history.scrollRestoration = "manual";
+        this.allowScroll = true;
+        
+        window.addEventListener('wheel', this.#handleScroll.bind(this));
+    }
+
+    #handleScroll(event){
+        if(!this.allowScroll){
+            return;
+        }
+
+        this.allowScroll = false;
+
+        if(event.deltaY > 0){
+            this.containers.every(function(container){
+                if(container.canForward){
+                    container.forward();
+                    return false;
+                }
+                else{
+                    return true;
+                }
+            });
+        }
+        else{
+            this.revcontainers.every(function(container){
+                if(container.canBackward){
+                    container.downward();
+                    return false;
+                }
+                else{
+                    return true;
+                }
+            });
+        }
+
+        setTimeout(() => {this.allowScroll = true}, 800);
+    }
+
+    addContainer(containerSelector, screensSelector, isFirst = false){
+        if(isFirst){
+            var container = new FirstContainer(containerSelector, screensSelector);
+            this.containers.push(container);
+        }
+        else{
+            var container = new Container(containerSelector, screensSelector);
+            container.isFirst = false;
+            this.containers.push(container);
+        }
+    }
+}
+
+class Container{
+    constructor(containerSelector, screensSelector){
+        this.container = document.querySelector(containerSelector);
+        this.screens = document.querySelectorAll(screensSelector);
+        
+        this.containerWidth = this.container.clientWidth;
+        this.containerHeight = this.container.clientHeight;
+        this.screensCount = this.screens.length;
+
+        this.canForward = true;
+        this.canBackward = false;
+        this.offset = 0;
+        this.screenNow = 0;
+    }
+
+    forward(){
+        var step = 0;
+
+        this.container.style.transform = "translateY(" + (0) + "px)";
+
+        this.offset += step;
+        this.screenNow ++;
+
+        if(this.screenNow == 0){
+            this.canForward = true;
+            this.canBackward = false;
+
+            return;
+        }
+        if(this.screenNow > 0){
+            this.canForward = false;
+            this.canBackward = true;
+
+            return;
+        }
+    }
+
+    downward(){
+        var step = 0;
+        if(this.screens.length > 1){
+            step = this.screens[this.screenNow].clientHeigh;
+        }
+        else{
+            step = this.screens[0].clientHeight;
+        }
+
+        this.container.style.transform = "translateY(" + (step) + "px)";
+
+        this.offset -= step;
+        this.screenNow --;
+
+        if(this.screenNow == 0){
+            this.canForward = true;
+            this.canBackward = false;
+
+            return;
+        }
+        if(this.screenNow > 0){
+            this.canForward = false;
+            this.canBackward = true;
+
+            return;
+        }
+    }
+}
+
+class FirstContainer extends Container{
+    constructor(...args){
+        super(...args);
+
+        this.screenNow = 1;
+    }
+
+    forward(){
+        var step = 0;
+        if(this.screens.length > 1){
+            step = - this.screens[this.screenNow - 1].clientHeight;
+        }
+        else{
+            step = - this.screens[0].clientHeight;
+        }
+
+        this.container.style.transform = "translateY(" + (this.offset + step) + "px)";
+
+        this.offset += step;
+        this.screenNow ++;
+
+        if(this.screenNow == 1){
+            this.canForward = true;
+            this.canBackward = false;
+
+            return;
+        }
+        if(this.screenNow > 1 && this.screenNow < this.screensCount){
+            this.canForward = true;
+            this.canBackward = true;
+
+            return;
+        }
+        if(this.screenNow == this.screensCount){
+            this.canForward = false;
+            this.canBackward = true;
+            
+            return;
+        }
+    }
+
+    downward(){
+        var step = 0;
+        if(this.screens.length > 1){
+            step = - this.screens[this.screenNow - 1].clientHeight;
+        }
+        else{
+            step = - this.screens[0].clientHeight;
+        }
+
+        this.container.style.transform = "translateY(" + (this.offset - step) + "px)";
+
+        this.offset -= step;
+        this.screenNow --;
+
+        if(this.screenNow == 1){
+            this.canForward = true;
+            this.canBackward = false;
+
+            return;
+        }
+        if(this.screenNow > 1 && this.screenNow < this.screensCount){
+            this.canForward = true;
+            this.canBackward = true;
+
+            return;
+        }
+        if(this.screenNow == this.screensCount){
+            this.canForward = false;
+            this.canBackward = true;
+            
+            return;
+        }
+    }
+}
+
+
+
+/* export default class FSS{
     constructor(containerQuery, screenQuery, outScreens, timeOffset = 2000, returnToStartWhenEnd = true){
         this.containerDOM = document.querySelector(containerQuery);
         this.screensDOM = document.querySelectorAll(screenQuery);
@@ -15,7 +221,7 @@ export default class FSS{
             me.translates.push(matrix.m42);
         });
 
-        this.Y = 0;
+        this.screenShow = 0;
         this.scrollAllow = true;
 
         history.scrollRestoration = "manual";
@@ -23,57 +229,50 @@ export default class FSS{
 
     initialize(){
         var me = this;
-        var outScreenNum = 0;
-        
-        var outScreenOffset = me.translates[0];
 
         function handleScroll(event){
             if(!me.scrollAllow){
                 return;
             }
-            me.Y += -event.deltaY;
 
-            if(me.Y <= me.screensDOM.length * (-100)){
-
-                if(me.outScreens.length > 0){
-                    if(outScreenNum >= me.outScreens.length){
-                        return;
-                    }
-
-                    me.outScreens[outScreenNum].style.zIndex = 100 * outScreenNum + 100;
-                    me.outScreens[outScreenNum].style.transform = "translateY(" + (outScreenOffset + me.translates[outScreenNum]/(-10)) + "px)";
-                    outScreenOffset += me.translates[outScreenNum]/(-10);
-
-                    if(Math.abs(outScreenOffset) < 10){
-                        me.outScreens[outScreenNum].style.transform = "translateY(" + 0 + "px)";
-                        outScreenNum++;
-                        outScreenOffset = me.translates[outScreenNum];
-
-                        
-                    }
+            if(event.deltaY > 0){
+                if(this.screenShow + 1 >= this.screensDOM.length){
+                    this.scrollAllow = false;
+                    this.showFPScreen(0);
+                    setTimeout(function(){
+                        me.scrollAllow = true;
+                        me.screenShow = 0;
+                    }, me.timeOffset);
 
                     return;
                 }
 
-                if(me.returnToStartWhenEnd){
-                    me.Y = 0;
-                }
-                else{
-                    me.Y -= -event.deltaY;
-                }
+                this.scrollAllow = false;
+                this.showFPScreen(this.screenShow + 1);
+                setTimeout(function(){
+                    me.scrollAllow = true;
+                    me.screenShow++;
+                }, me.timeOffset);
             }
-            if(me.Y > 0){
-                me.Y = 0;
-                return;
+            else{
+                if(this.screenShow - 1 < 0){
+                    return;
+                }
+
+                this.scrollAllow = false;
+                this.showFPScreen(this.screenShow - 1);
+                setTimeout(function(){
+                    me.scrollAllow = true;
+                    me.screenShow--;
+                }, me.timeOffset);
             }
-
-            me.scrollAllow = false;
-
-            me.containerDOM.style.transform = "translateY(" + me.Y + "vh)";
-    
-            setTimeout(function(){me.scrollAllow = true}, me.timeOffset);
         }
 
-        window.addEventListener('wheel', handleScroll);
+        window.addEventListener('wheel', handleScroll.bind(this));
     }
-}
+
+    showFPScreen(screenNumber){
+        var offset = -screenNumber * 100;
+        this.containerDOM.style.transform = "translateY(" + offset + "vh)";
+    }
+} */
