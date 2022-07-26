@@ -2,6 +2,7 @@ export default class FSS{
     constructor(){
         this.containers = [];
         this.revcontainers = [];
+        
 
         this.allowScroll;
     }
@@ -44,18 +45,31 @@ export default class FSS{
             });
         }
 
-        setTimeout(() => {this.allowScroll = true}, 800);
+        setTimeout(() => {this.allowScroll = true}, 0);
     }
 
-    addContainer(containerSelector, screensSelector, isFirst = false){
-        if(isFirst){
-            var container = new FirstContainer(containerSelector, screensSelector);
-            this.containers.push(container);
-        }
-        else{
-            var container = new Container(containerSelector, screensSelector);
-            container.isFirst = false;
-            this.containers.push(container);
+    addContainer(containerSelector, screensSelector, type = "default"){
+
+        switch(type){
+            case "first":
+                var container = new FirstContainer(containerSelector, screensSelector);
+                this.containers.push(container);
+                break;
+            
+            case "bottom":
+                var container = new BottomContainer(containerSelector, screensSelector);
+                this.containers.push(container);
+                break;
+
+            case "top":
+                var container = new TopContainer(containerSelector, screensSelector);
+                this.containers.push(container);
+                break;
+
+            default:
+                var container = new Container(containerSelector, screensSelector);
+                this.containers.push(container);
+                break;
         }
     }
 }
@@ -65,31 +79,58 @@ class Container{
         this.container = document.querySelector(containerSelector);
         this.screens = document.querySelectorAll(screensSelector);
         
-        this.containerWidth = this.container.clientWidth;
-        this.containerHeight = this.container.clientHeight;
+        this.containerWidth = this.container.offsetWidth;
+        this.containerHeight = this.container.offsetHeight;
+
         this.screensCount = this.screens.length;
+
+        this.startTranslate = this.#getTranslateY(this.container);
+        this.stepRatio = 6;
+        this.offset = this.startTranslate;
+        this.limit = Math.abs(this.startTranslate) - this.containerHeight;
 
         this.canForward = true;
         this.canBackward = false;
-        this.offset = 0;
         this.screenNow = 0;
     }
 
+    stepForwardCalculate(){
+        return 1;
+    }
+    stepBackwardCalculate(){
+        return 1;
+    }
+
     forward(){
-        var step = 0;
+        var step = this.stepForwardCalculate();
 
-        this.container.style.transform = "translateY(" + (0) + "px)";
+        this.container.style.transform = "translateY(" + (step) + "px)";
 
-        this.offset += step;
-        this.screenNow ++;
+        this.offset = step;
 
-        if(this.screenNow == 0){
+        if(this.#checkApprox(this.offset, this.limit, 50)){
+            this.offset = this.limit;
+            this.container.style.transform = "translateY(" + (this.offset) + "px)";
+        }
+        if(this.#checkApprox(this.offset, this.startTranslate, 50)){
+            this.offset = this.startTranslate;
+            this.container.style.transform = "translateY(" + (this.offset) + "px)";
+        }
+
+        
+        if(this.offset == this.startTranslate){
             this.canForward = true;
             this.canBackward = false;
-
+            
             return;
         }
-        if(this.screenNow > 0){
+        if(Math.abs(this.offset) < Math.abs(this.startTranslate) && Math.abs(this.offset) > Math.abs(this.limit)){
+            this.canForward = true;
+            this.canBackward = true;
+            
+            return;
+        }
+        if(this.offset == this.limit){
             this.canForward = false;
             this.canBackward = true;
 
@@ -98,31 +139,49 @@ class Container{
     }
 
     downward(){
-        var step = 0;
-        if(this.screens.length > 1){
-            step = this.screens[this.screenNow].clientHeigh;
-        }
-        else{
-            step = this.screens[0].clientHeight;
-        }
+        var step = this.stepBackwardCalculate();
 
         this.container.style.transform = "translateY(" + (step) + "px)";
 
-        this.offset -= step;
-        this.screenNow --;
+        this.offset = step;
 
-        if(this.screenNow == 0){
+        if(this.#checkApprox(this.offset, this.limit, 50)){
+            this.offset = this.limit;
+            this.container.style.transform = "translateY(" + (this.offset) + "px)";
+        }
+        if(this.#checkApprox(this.offset, this.startTranslate, 50)){
+            this.offset = this.startTranslate;
+            this.container.style.transform = "translateY(" + (this.offset) + "px)";
+        }
+        
+        if(this.offset == this.startTranslate){
             this.canForward = true;
             this.canBackward = false;
-
+            
             return;
         }
-        if(this.screenNow > 0){
+        if(Math.abs(this.offset) < Math.abs(this.startTranslate) && Math.abs(this.offset) > Math.abs(this.limit)){
+            this.canForward = true;
+            this.canBackward = true;
+            
+            return;
+        }
+        if(this.offset == this.limit){
             this.canForward = false;
             this.canBackward = true;
 
             return;
         }
+    }
+
+    #getTranslateY(target){
+        var style = window.getComputedStyle(target);
+        var matrix = new WebKitCSSMatrix(style.transform);
+        return matrix.m42;
+    }
+
+    #checkApprox(num1, num2, epsilon){
+        return Math.abs(num1 - num2) < epsilon;
     }
 }
 
@@ -202,77 +261,32 @@ class FirstContainer extends Container{
     }
 }
 
+class BottomContainer extends Container{
+    constructor(...args){
+        super(...args);
 
-
-/* export default class FSS{
-    constructor(containerQuery, screenQuery, outScreens, timeOffset = 2000, returnToStartWhenEnd = true){
-        this.containerDOM = document.querySelector(containerQuery);
-        this.screensDOM = document.querySelectorAll(screenQuery);
-        this.outScreens = document.querySelectorAll(outScreens);
-        this.timeOffset = timeOffset;
-        this.returnToStartWhenEnd = returnToStartWhenEnd;
-
-        this.translates = [];
-        var me = this;
-        this.outScreens.forEach(function(screen){
-            var style = window.getComputedStyle(screen);
-            var matrix = new WebKitCSSMatrix(style.transform);
-            
-            me.translates.push(matrix.m42);
-        });
-
-        this.screenShow = 0;
-        this.scrollAllow = true;
-
-        history.scrollRestoration = "manual";
     }
 
-    initialize(){
-        var me = this;
+    stepForwardCalculate(){
+        return Math.round(this.offset - this.containerHeight / this.stepRatio);
+    }
+    stepBackwardCalculate(){
+        return Math.round(this.offset + this.containerHeight / this.stepRatio);
+    }
+}
 
-        function handleScroll(event){
-            if(!me.scrollAllow){
-                return;
-            }
+class TopContainer extends Container{
+    constructor(...args){
+        super(...args);
 
-            if(event.deltaY > 0){
-                if(this.screenShow + 1 >= this.screensDOM.length){
-                    this.scrollAllow = false;
-                    this.showFPScreen(0);
-                    setTimeout(function(){
-                        me.scrollAllow = true;
-                        me.screenShow = 0;
-                    }, me.timeOffset);
-
-                    return;
-                }
-
-                this.scrollAllow = false;
-                this.showFPScreen(this.screenShow + 1);
-                setTimeout(function(){
-                    me.scrollAllow = true;
-                    me.screenShow++;
-                }, me.timeOffset);
-            }
-            else{
-                if(this.screenShow - 1 < 0){
-                    return;
-                }
-
-                this.scrollAllow = false;
-                this.showFPScreen(this.screenShow - 1);
-                setTimeout(function(){
-                    me.scrollAllow = true;
-                    me.screenShow--;
-                }, me.timeOffset);
-            }
-        }
-
-        window.addEventListener('wheel', handleScroll.bind(this));
+        
     }
 
-    showFPScreen(screenNumber){
-        var offset = -screenNumber * 100;
-        this.containerDOM.style.transform = "translateY(" + offset + "vh)";
+    stepForwardCalculate(){
+        return Math.round(this.offset + this.containerHeight / this.stepRatio);
     }
-} */
+
+    stepBackwardCalculate(){
+        return Math.round(this.offset - this.containerHeight / this.stepRatio);
+    }
+}
