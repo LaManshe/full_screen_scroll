@@ -2,16 +2,41 @@ export default class FSS{
     constructor(){
         this.containers = [];
         this.revcontainers = [];
+
+        this.touchController;
         
         this.allowScroll;
     }
 
     initWheelEvent(){
+        this.touchController = new TouchController();
+
         this.revcontainers = [].concat(this.containers).reverse();
-        history.scrollRestoration = "manual";
         this.allowScroll = true;
-        
+
+        history.scrollRestoration = "manual";
+
         window.addEventListener('wheel', this.#handleScroll.bind(this));
+        window.addEventListener('touchstart', () => {
+            this.touchController.clearTouches();
+        });
+        window.addEventListener('touchmove', () => {
+            var touch = event.touches[0] || event.changedTouches[0];
+            this.touchController.touch(touch, this.#handleTouchBottom.bind(this), this.#handleTouchTop.bind(this));
+        });
+        window.addEventListener('touchend', () => {
+            var directionY = this.touchController.directionY();
+
+            if(directionY == 0){
+                return;
+            }
+            else if(directionY > 0){
+                this.#handleTouchTop();
+            }
+            else{
+                this.#handleTouchBottom();
+            }
+        });
     }
 
     #handleScroll(event){
@@ -49,8 +74,55 @@ export default class FSS{
         setTimeout(() => {this.allowScroll = true}, delay);
     }
 
-    addContainer(containerSelector, screensSelector, type = "default", selfDelay = 0){
+    #handleTouchBottom(){
+        if(!this.allowScroll){
+            return;
+        }
+        var delay = 0;
+        this.allowScroll = false;
 
+        this.containers.every(function(container){
+            if(container.canForward){
+                container.forward();
+                delay = container.delay;
+                return false;
+            }
+            else{
+                return true;
+            }
+        });
+
+        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)){
+            setTimeout(() => {this.allowScroll = true}, 0);
+        }
+        setTimeout(() => {this.allowScroll = true}, delay);
+    }
+
+    #handleTouchTop(){
+        if(!this.allowScroll){
+            return;
+        }
+        var delay = 0;
+        this.allowScroll = false;
+
+        this.revcontainers.every(function(container){
+            if(container.canBackward){
+                container.downward();
+                delay = container.delay;
+                return false;
+            }
+            else{
+                return true;
+            }
+        });
+
+        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)){
+            setTimeout(() => {this.allowScroll = true}, 0);
+        }
+        setTimeout(() => {this.allowScroll = true}, delay);
+    }
+
+    addContainer(containerSelector, screensSelector, type = "default", selfDelay = 0){
         switch(type){
             case "first":
                 var container = new FirstContainer(containerSelector, screensSelector);
@@ -93,6 +165,7 @@ class Container{
         this.offset = this.startTranslate;
         this.limit = Math.abs(this.startTranslate) - this.containerHeight;
         this.delay = 0;
+        this.epsilon = 50;
 
         this.canForward = true;
         this.canBackward = false;
@@ -106,17 +179,19 @@ class Container{
     }
 
     forward(){
+
         var step = this.stepForwardCalculate();
 
         this.container.style.transform = "translateY(" + (step) + "px)";
 
         this.offset = step;
+        this.counterEvents = 0;
 
-        if(this.#checkApprox(this.offset, this.limit, 50)){
+        if(this.#checkApprox(this.offset, this.limit, this.epsilon)){
             this.offset = this.limit;
             this.container.style.transform = "translateY(" + (this.offset) + "px)";
         }
-        if(this.#checkApprox(this.offset, this.startTranslate, 50)){
+        if(this.#checkApprox(this.offset, this.startTranslate, this.epsilon)){
             this.offset = this.startTranslate;
             this.container.style.transform = "translateY(" + (this.offset) + "px)";
         }
@@ -142,17 +217,18 @@ class Container{
     }
 
     downward(){
+
         var step = this.stepBackwardCalculate();
 
         this.container.style.transform = "translateY(" + (step) + "px)";
 
         this.offset = step;
 
-        if(this.#checkApprox(this.offset, this.limit, 50)){
+        if(this.#checkApprox(this.offset, this.limit, this.epsilon)){
             this.offset = this.limit;
             this.container.style.transform = "translateY(" + (this.offset) + "px)";
         }
-        if(this.#checkApprox(this.offset, this.startTranslate, 50)){
+        if(this.#checkApprox(this.offset, this.startTranslate, this.epsilon)){
             this.offset = this.startTranslate;
             this.container.style.transform = "translateY(" + (this.offset) + "px)";
         }
@@ -207,6 +283,8 @@ class FirstContainer extends Container{
 class BottomContainer extends Container{
     constructor(...args){
         super(...args);
+
+        this.stepRatio = 2;
     }
 
     stepForwardCalculate(){
@@ -220,6 +298,8 @@ class BottomContainer extends Container{
 class TopContainer extends Container{
     constructor(...args){
         super(...args);
+
+        this.stepRatio = 1;
     }
 
     stepForwardCalculate(){
@@ -228,5 +308,44 @@ class TopContainer extends Container{
 
     stepBackwardCalculate(){
         return Math.round(this.offset - this.containerHeight / this.stepRatio);
+    }
+}
+
+class TouchController{
+    constructor(){
+        this.touches = [];
+    }
+
+    touch(touch, func_bottom, func_top){
+        this.touches.push(touch.clientY);
+
+        /* if(this.touches.length > 5){
+            var directionY = this.directionY();
+
+            if(directionY == 0){
+                return;
+            }
+            else if(directionY > 0){
+                func_top();
+            }
+            else{
+                func_bottom();
+            }
+
+            this.clearTouches();
+        } */
+    }
+
+    clearTouches(){
+        this.touches = [];
+    }
+
+    directionY(){
+        if(this.touches.length <= 1){
+            return 0;
+        }
+        var dif = this.touches[this.touches.length - 1] - this.touches[0];
+
+        return dif;
     }
 }
