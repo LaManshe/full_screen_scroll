@@ -3,7 +3,6 @@ export default class FSS{
         this.containers = [];
         this.revcontainers = [];
         
-
         this.allowScroll;
     }
 
@@ -81,7 +80,6 @@ class Container{
         
         this.containerWidth = this.container.offsetWidth;
         this.containerHeight = this.container.offsetHeight;
-
         this.screensCount = this.screens.length;
 
         this.startTranslate = this.#getTranslateY(this.container);
@@ -91,7 +89,6 @@ class Container{
 
         this.canForward = true;
         this.canBackward = false;
-        this.screenNow = 0;
     }
 
     stepForwardCalculate(){
@@ -104,7 +101,6 @@ class Container{
     forward(){
         var step = this.stepForwardCalculate();
 
-        
         this.container.style.transform = "translateY(" + (step) + "px)";
 
         this.offset = step;
@@ -199,80 +195,11 @@ class FirstContainer extends Container{
     stepBackwardCalculate(){
         return Math.round(this.offset + this.containerHeight / this.screensCount);
     }
-
-    /* forward(){
-        var step = 0;
-        if(this.screens.length > 1){
-            step = - this.screens[this.screenNow - 1].clientHeight;
-        }
-        else{
-            step = - this.screens[0].clientHeight;
-        }
-
-        this.container.style.transform = "translateY(" + (this.offset + step) + "px)";
-
-        this.offset += step;
-        this.screenNow ++;
-
-        if(this.screenNow == 1){
-            this.canForward = true;
-            this.canBackward = false;
-
-            return;
-        }
-        if(this.screenNow > 1 && this.screenNow < this.screensCount){
-            this.canForward = true;
-            this.canBackward = true;
-
-            return;
-        }
-        if(this.screenNow == this.screensCount){
-            this.canForward = false;
-            this.canBackward = true;
-            
-            return;
-        }
-    }
-
-    downward(){
-        var step = 0;
-        if(this.screens.length > 1){
-            step = - this.screens[this.screenNow - 1].clientHeight;
-        }
-        else{
-            step = - this.screens[0].clientHeight;
-        }
-
-        this.container.style.transform = "translateY(" + (this.offset - step) + "px)";
-
-        this.offset -= step;
-        this.screenNow --;
-
-        if(this.screenNow == 1){
-            this.canForward = true;
-            this.canBackward = false;
-
-            return;
-        }
-        if(this.screenNow > 1 && this.screenNow < this.screensCount){
-            this.canForward = true;
-            this.canBackward = true;
-
-            return;
-        }
-        if(this.screenNow == this.screensCount){
-            this.canForward = false;
-            this.canBackward = true;
-            
-            return;
-        }
-    } */
 }
 
 class BottomContainer extends Container{
     constructor(...args){
         super(...args);
-
     }
 
     stepForwardCalculate(){
@@ -286,8 +213,6 @@ class BottomContainer extends Container{
 class TopContainer extends Container{
     constructor(...args){
         super(...args);
-
-        
     }
 
     stepForwardCalculate(){
