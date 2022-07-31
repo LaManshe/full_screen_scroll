@@ -6,16 +6,27 @@ export default class FSS{
         this.touchController;
         
         this.allowScroll;
+
+        this.scrollsCount;
+        this.scrollNow;
     }
 
-    initWheelEvent(){
+    init(){
         this.touchController = new TouchController();
 
         this.revcontainers = [].concat(this.containers).reverse();
         this.allowScroll = true;
 
-        history.scrollRestoration = "manual";
+        this.scrollNow = 0;
+        this.scrollsCount = 0;
+        this.containers.forEach((container) => {
+            this.scrollsCount += container.stepRatio;
+        });
 
+        history.scrollRestoration = "manual";
+    }
+
+    initWheelEvent(){
         window.addEventListener('wheel', this.#handleScroll.bind(this));
         window.addEventListener('touchstart', () => {
             this.touchController.clearTouches();
@@ -39,6 +50,10 @@ export default class FSS{
         });
     }
 
+    wheel(event){
+        this.#handleScroll(event);
+    }
+
     #handleScroll(event){
         if(!this.allowScroll){
             return;
@@ -47,10 +62,11 @@ export default class FSS{
         this.allowScroll = false;
 
         if(event.deltaY > 0){
-            this.containers.every(function(container){
+            this.containers.every((container) => {
                 if(container.canForward){
                     container.forward();
                     delay = container.delay;
+                    this.scrollNow ++;
                     return false;
                 }
                 else{
@@ -59,10 +75,11 @@ export default class FSS{
             });
         }
         else{
-            this.revcontainers.every(function(container){
+            this.revcontainers.every((container) => {
                 if(container.canBackward){
                     container.downward();
                     delay = container.delay;
+                    this.scrollNow --;
                     return false;
                 }
                 else{
@@ -71,7 +88,7 @@ export default class FSS{
             });
         }
 
-        setTimeout(() => {this.allowScroll = true}, delay);
+        setTimeout(() => {this.allowScroll = true; console.log(this.scrollNow)}, delay);
     }
 
     #handleTouchBottom(){
@@ -267,7 +284,7 @@ class Container{
 class FirstContainer extends Container{
     constructor(...args){
         super(...args);
-
+        this.stepRatio = this.screens.length;
         this.limit = Math.abs(this.startTranslate) - this.containerHeight + this.screens[0].offsetHeight;
     }
 
@@ -316,24 +333,8 @@ class TouchController{
         this.touches = [];
     }
 
-    touch(touch, func_bottom, func_top){
+    touch(touch){
         this.touches.push(touch.clientY);
-
-        /* if(this.touches.length > 5){
-            var directionY = this.directionY();
-
-            if(directionY == 0){
-                return;
-            }
-            else if(directionY > 0){
-                func_top();
-            }
-            else{
-                func_bottom();
-            }
-
-            this.clearTouches();
-        } */
     }
 
     clearTouches(){
