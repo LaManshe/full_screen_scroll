@@ -88,7 +88,7 @@ export default class FSS{
             });
         }
 
-        setTimeout(() => {this.allowScroll = true; console.log(this.scrollNow)}, delay);
+        setTimeout(() => {this.allowScroll = true;}, delay);
     }
 
     #handleTouchBottom(){
