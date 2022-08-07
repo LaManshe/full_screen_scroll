@@ -129,7 +129,6 @@ export default class FSS{
         var zIndex = 100;
         args.forEach((element) => {
             element.forEach((container) => {
-                console.log(container);
                 container.container.style.zIndex = zIndex + "";
 
                 zIndex += 10;
