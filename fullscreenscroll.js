@@ -2,7 +2,6 @@ export default class FSS{
     constructor(){
         this.containers = [];
         this.revcontainers = [];
-        this.layers = [];
 
         this.allowScroll;
         this.scrollsCount;
@@ -13,16 +12,14 @@ export default class FSS{
 
     init(){
         this.revcontainers = [].concat(this.containers).reverse();
+
         this.allowScroll = true;
 
         this.scrollNow = 0;
         this.scrollsCount = 0;
-        this.containers.forEach((container) => {
-            this.scrollsCount += container.stepRatio;
-        });
+
         this.nav = new DynamicNav();
         this.nav.createNav(this.containers);
-        
         this.nav.links.forEach((link) => {
             link.addEventListener('click', (item) => {
                 let funcDown = this.handleDown.bind(this, true);
@@ -31,7 +28,7 @@ export default class FSS{
             });
         });
 
-        this.#set_zIndexes(this.containers, this.layers);
+        this.#set_zIndexes(this.containers);
 
         history.scrollRestoration = "manual";
     }
@@ -65,9 +62,8 @@ export default class FSS{
             return;
         }
         var delay = 0;
-        var freeze = false;
         this.allowScroll = false;
-        
+
         this.containers.every((container) => {
             if(container.canForward){
                 container.forward();
@@ -76,20 +72,26 @@ export default class FSS{
                 return false;
             }
             else{
-                if(container == this.containers[this.containers.length - 1]){
-                    if(this.layers.length > 0){
-                        this.layers[0].show();
-                        freeze = true;
-
-                        this.scrollNow ++;
-                    }
-                }
                 return true;
             }
         });
 
-        if(!freeze)
-            setTimeout(() => {this.allowScroll = true}, delay);
+        setTimeout(() => {
+            this.nav.links.forEach((link) => {
+                link.classList.remove("active");
+            });
+            this.revcontainers.every((container) => {
+                if(container.isUserSee()){
+                    container.activeMyLink();
+
+                    return false;
+                }
+                else{
+                    return true;
+                }
+            });
+            this.allowScroll = true;
+        }, delay + 50);
     }
 
     handleUp(fast = false){
@@ -111,25 +113,22 @@ export default class FSS{
             }
         });
 
-        setTimeout(() => {this.allowScroll = true}, delay);
-    }
+        setTimeout(() => {
+            this.nav.links.forEach((link) => {
+                link.classList.remove("active");
+            });
+            this.revcontainers.every((container) => {
+                if(container.isUserSee()){
+                    container.activeMyLink();
 
-    #unfreeze(){
-        if(this.layers.length < 1){
-            return false;
-        }
-        if(this.layers[0].isOut() && this.layers[0].showed){
-            this.freeze = false;
+                    return false;
+                }
+                else{
+                    return true;
+                }
+            });
             this.allowScroll = true;
-
-            this.layers[0].hide();
-            this.scrollNow --;
-
-            return true;
-        }
-        else{
-            return false;
-        }
+        }, delay + 50);
     }
 
     #set_zIndexes(...args){
@@ -160,7 +159,9 @@ class Container{
         this.epsilon = 50;
         this.stepRatio = stepRatio;
         this.visualName = visualName;
-        this.startPos = this.screensCount / this.stepRatio;
+        this.countScrollsForFull = this.stepRatio / this.screensCount;
+
+        this.myLink;
 
         this.canForward = true;
         this.canBackward = false;
@@ -219,6 +220,35 @@ class Container{
         }
     }
 
+    isUserSee(){
+        var myPosition = {
+            top: window.pageYOffset    + this.container.getBoundingClientRect().top,
+            left: window.pageXOffset   + this.container.getBoundingClientRect().left,
+            right: window.pageXOffset  + this.container.getBoundingClientRect().right,
+            bottom: window.pageYOffset + this.container.getBoundingClientRect().bottom
+        },
+        windowPosition = {
+            top: window.pageYOffset,
+            left: window.pageXOffset,
+            right: window.pageXOffset + document.documentElement.clientWidth,
+            bottom: window.pageYOffset + document.documentElement.clientHeight
+        };
+      
+        if (myPosition.bottom > windowPosition.top && 
+            myPosition.top < windowPosition.bottom && 
+            myPosition.right > windowPosition.left && 
+            myPosition.left < windowPosition.right){ 
+            return true;
+        } 
+        else{
+            return false;
+        };
+    }
+
+    activeMyLink(){
+        this.myLink.classList.add("active");
+    }
+
     forward(){
         var step = this.stepForwardCalculate();
 
@@ -247,6 +277,7 @@ class StartContainer extends Container{
         super(...args);
 
         this.limit = Math.abs(this.startTranslate) - this.containerHeight + this.screens[this.screensCount - 1].offsetHeight;
+        this.countScrollsForFull = 0;
     }
 }
 
@@ -282,7 +313,7 @@ class DynamicNav{
     handleLinkClick(f_down, f_up, scrollNow, link){
         var offset = link.dataset.offset;
         var steps = offset - scrollNow;
-        
+
         var funcs = [];
 
         if(steps > 0){
@@ -318,13 +349,17 @@ class DynamicNav{
         for(let i = 0; i < containers.length; i++){
             var li = document.createElement('li');
             li.setAttribute('class', 'container-name');
-            startOffset = startOffset + this.#getStartStepsOffset(containers[i - 1]);
+            startOffset = startOffset + this.#getStartStepsOffset(containers[i - 1]) + containers[i].countScrollsForFull;
             li.setAttribute('data-offset', startOffset);
             li.innerHTML = containers[i].visualName;
             ul.appendChild(li);
 
+            containers[i].myLink = li;
+
             this.links.push(li);
         }
+
+        ul.children[0].classList.add("active");
     }
 
     #getStartStepsOffset(container){
@@ -332,7 +367,7 @@ class DynamicNav{
             return 0;
         }
         else{
-            return container.screensCount;
+            return container.screensCount - 1;
         }
     }
 
