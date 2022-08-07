@@ -50,6 +50,16 @@ export default class FSS{
                 this.containers.push(container);
                 break;
 
+            case "left":
+                var container = new LeftContainer(containerSelector, screensSelector, stepRatio, selfDelay, visualName);
+                this.containers.push(container);
+                break;
+
+            case "right":
+                var container = new RightContainer(containerSelector, screensSelector, stepRatio, selfDelay, visualName);
+                this.containers.push(container);
+                break;
+
             default:
                 var container = new Container(containerSelector, screensSelector, stepRatio, selfDelay, visualName);
                 this.containers.push(container);
@@ -188,7 +198,7 @@ class Container{
         return (n - a) * (n - b) < 0
     }
 
-    #checkLimits(){
+    checkLimits(){
         if(this.#checkApprox(this.offset, this.limit, this.epsilon)){
             this.offset = this.limit;
             this.container.style.transform = "translateY(" + (this.offset) + "px)";
@@ -245,6 +255,10 @@ class Container{
         };
     }
 
+    typeOfMove(step){
+        this.container.style.transform = "translate(0px, " + (step) + "px)";
+    }
+
     activeMyLink(){
         this.myLink.classList.add("active");
     }
@@ -252,10 +266,11 @@ class Container{
     forward(){
         var step = this.stepForwardCalculate();
 
-        this.container.style.transform = "translateY(" + (step) + "px)";
+        this.typeOfMove(step);
+        
         this.offset = step;
 
-        this.#checkLimits();
+        this.checkLimits();
 
         this.#setCans();
     }
@@ -263,10 +278,11 @@ class Container{
     backward(){
         var step = this.stepBackwardCalculate();
 
-        this.container.style.transform = "translateY(" + (step) + "px)";
+        this.typeOfMove(step);
+
         this.offset = step;
 
-        this.#checkLimits();
+        this.checkLimits();
 
         this.#setCans();
     }
@@ -298,6 +314,90 @@ class TopContainer extends Container{
 
     stepBackwardCalculate(){
         return Math.round(this.offset - this.containerHeight / this.stepRatio);
+    }
+}
+
+class LeftContainer extends Container{
+    constructor(...args){
+        super(...args);
+
+        this.startTranslate = this.#getTranslateX(this.container);
+        this.offset = this.startTranslate;
+        this.limit = Math.abs(this.startTranslate) - this.containerWidth;
+    }
+
+    stepForwardCalculate(){
+        return Math.round(this.offset + this.containerWidth / this.stepRatio);
+    }
+    stepBackwardCalculate(){
+        return Math.round(this.offset - this.containerWidth / this.stepRatio);
+    }
+
+    typeOfMove(step){
+        this.container.style.transform = "translate(" + (step) + "px, 0px)";
+    }
+
+    #getTranslateX(target){
+        var style = window.getComputedStyle(target);
+        var matrix = new WebKitCSSMatrix(style.transform);
+        return matrix.m41;
+    }
+
+    checkLimits(){
+        if(this.#checkApprox(this.offset, this.limit, this.epsilon)){
+            this.offset = this.limit;
+            this.container.style.transform = "translate(" + (this.offset) + "px, 0px)";
+        }
+        if(this.#checkApprox(this.offset, this.startTranslate, this.epsilon)){
+            this.offset = this.startTranslate;
+            this.container.style.transform = "translate(" + (this.offset) + "px, 0px)";
+        }
+    }
+
+    #checkApprox(num1, num2, epsilon){
+        return Math.abs(num1 - num2) < epsilon;
+    }
+}
+
+class RightContainer extends Container{
+    constructor(...args){
+        super(...args);
+
+        this.startTranslate = this.#getTranslateX(this.container);
+        this.offset = this.startTranslate;
+        this.limit = Math.abs(this.startTranslate) - this.containerWidth;
+    }
+
+    stepForwardCalculate(){
+        return Math.round(this.offset - this.containerWidth / this.stepRatio);
+    }
+    stepBackwardCalculate(){
+        return Math.round(this.offset + this.containerWidth / this.stepRatio);
+    }
+
+    typeOfMove(step){
+        this.container.style.transform = "translate(" + (step) + "px, 0px)";
+    }
+
+    #getTranslateX(target){
+        var style = window.getComputedStyle(target);
+        var matrix = new WebKitCSSMatrix(style.transform);
+        return matrix.m41;
+    }
+
+    checkLimits(){
+        if(this.#checkApprox(this.offset, this.limit, this.epsilon)){
+            this.offset = this.limit;
+            this.container.style.transform = "translate(" + (this.offset) + "px, 0px)";
+        }
+        if(this.#checkApprox(this.offset, this.startTranslate, this.epsilon)){
+            this.offset = this.startTranslate;
+            this.container.style.transform = "translate(" + (this.offset) + "px, 0px)";
+        }
+    }
+
+    #checkApprox(num1, num2, epsilon){
+        return Math.abs(num1 - num2) < epsilon;
     }
 }
 
