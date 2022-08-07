@@ -19,6 +19,8 @@ export default class FSS{
             this.scrollsCount += container.stepRatio;
         });
 
+        this.#set_zIndexes(this.containers, this.layers);
+
         history.scrollRestoration = "manual";
     }
 
@@ -108,6 +110,18 @@ export default class FSS{
         });
 
         setTimeout(() => {this.allowScroll = true}, delay);
+    }
+
+    #set_zIndexes(...args){
+        var zIndex = 100;
+        args.forEach((element) => {
+            element.forEach((container) => {
+                console.log(container);
+                container.container.style.zIndex = zIndex + "";
+
+                zIndex += 10;
+            })
+        })
     }
 }
 
@@ -237,13 +251,13 @@ class TopContainer extends Container{
 
 class Layer{
     constructor(layerSelector){
-        this.layer = document.querySelector(layerSelector);
+        this.container = document.querySelector(layerSelector);
 
         this.showed = false;
     }
 
     show(){
-        this.layer.style.transform = "translateY(" + (0) + "px)";
+        this.container.style.transform = "translateY(" + (0) + "px)";
 
         document.body.style.setProperty('overflow', 'auto');
 
@@ -251,7 +265,7 @@ class Layer{
     }
 
     hide(){
-        this.layer.style.transform = "translateY(" + this.layer.offsetHeight + "px)";
+        this.container.style.transform = "translateY(" + this.container.offsetHeight + "px)";
 
         document.body.style.setProperty('overflow', 'hidden');
 
