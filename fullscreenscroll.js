@@ -73,6 +73,8 @@ export default class FSS{
                     if(this.layers.length > 0){
                         this.layers[0].show();
                         freeze = true;
+
+                        this.scrollNow ++;
                     }
                 }
                 return true;
@@ -117,6 +119,7 @@ export default class FSS{
             this.allowScroll = true;
 
             this.layers[0].hide();
+            this.scrollNow --;
 
             return true;
         }
