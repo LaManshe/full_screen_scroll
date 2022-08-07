@@ -2,18 +2,14 @@ export default class FSS{
     constructor(){
         this.containers = [];
         this.revcontainers = [];
+        this.layers = [];
 
-        this.touchController;
-        
         this.allowScroll;
-
         this.scrollsCount;
         this.scrollNow;
     }
 
     init(){
-        this.touchController = new TouchController();
-
         this.revcontainers = [].concat(this.containers).reverse();
         this.allowScroll = true;
 
@@ -26,248 +22,120 @@ export default class FSS{
         history.scrollRestoration = "manual";
     }
 
-    initWheelEvent(){
-        window.addEventListener('wheel', this.#handleScroll.bind(this));
-        window.addEventListener('touchstart', () => {
-            this.touchController.clearTouches();
-        });
-        window.addEventListener('touchmove', () => {
-            var touch = event.touches[0] || event.changedTouches[0];
-            this.touchController.touch(touch, this.#handleTouchBottom.bind(this), this.#handleTouchTop.bind(this));
-        });
-        window.addEventListener('touchend', () => {
-            var directionY = this.touchController.directionY();
-
-            if(directionY == 0){
-                return;
-            }
-            else if(directionY > 0){
-                this.#handleTouchTop();
-            }
-            else{
-                this.#handleTouchBottom();
-            }
-        });
-    }
-
-    wheel(event){
-        this.#handleScroll(event);
-    }
-
-    #handleScroll(event){
-        if(!this.allowScroll){
-            return;
-        }
-        var delay = 0;
-        this.allowScroll = false;
-
-        if(event.deltaY > 0){
-            this.containers.every((container) => {
-                if(container.canForward){
-                    container.forward();
-                    delay = container.delay;
-                    this.scrollNow ++;
-                    return false;
-                }
-                else{
-                    return true;
-                }
-            });
-        }
-        else{
-            this.revcontainers.every((container) => {
-                if(container.canBackward){
-                    container.downward();
-                    delay = container.delay;
-                    this.scrollNow --;
-                    return false;
-                }
-                else{
-                    return true;
-                }
-            });
-        }
-
-        setTimeout(() => {this.allowScroll = true;}, delay);
-    }
-
-    #handleTouchBottom(){
-        if(!this.allowScroll){
-            return;
-        }
-        var delay = 0;
-        this.allowScroll = false;
-
-        this.containers.every(function(container){
-            if(container.canForward){
-                container.forward();
-                delay = container.delay;
-                return false;
-            }
-            else{
-                return true;
-            }
-        });
-
-        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)){
-            setTimeout(() => {this.allowScroll = true}, 0);
-        }
-        setTimeout(() => {this.allowScroll = true}, delay);
-    }
-
-    #handleTouchTop(){
-        if(!this.allowScroll){
-            return;
-        }
-        var delay = 0;
-        this.allowScroll = false;
-
-        this.revcontainers.every(function(container){
-            if(container.canBackward){
-                container.downward();
-                delay = container.delay;
-                return false;
-            }
-            else{
-                return true;
-            }
-        });
-
-        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent)){
-            setTimeout(() => {this.allowScroll = true}, 0);
-        }
-        setTimeout(() => {this.allowScroll = true}, delay);
-    }
-
-    addContainer(containerSelector, screensSelector, type = "default", selfDelay = 0){
+    addContainer(containerSelector, screensSelector, stepRatio, stepRatioMobile, type = "default", selfDelay){
         switch(type){
-            case "first":
-                var container = new FirstContainer(containerSelector, screensSelector);
-                container.delay = selfDelay;
+            case "start":
+                var container = new StartContainer(containerSelector, screensSelector, stepRatio, stepRatioMobile, selfDelay);
                 this.containers.push(container);
                 break;
             
             case "bottom":
-                var container = new BottomContainer(containerSelector, screensSelector);
-                container.delay = selfDelay;
+                var container = new BottomContainer(containerSelector, screensSelector, stepRatio, stepRatioMobile, selfDelay);
                 this.containers.push(container);
                 break;
 
             case "top":
-                var container = new TopContainer(containerSelector, screensSelector);
-                container.delay = selfDelay;
+                var container = new TopContainer(containerSelector, screensSelector, stepRatio, stepRatioMobile, selfDelay);
                 this.containers.push(container);
                 break;
 
             default:
-                var container = new Container(containerSelector, screensSelector);
-                container.delay = selfDelay;
+                var container = new Container(containerSelector, screensSelector, stepRatio, stepRatioMobile, selfDelay);
                 this.containers.push(container);
                 break;
         }
     }
+
+    addLayer(layerSelector){
+        var layer = new Layer(layerSelector);
+        this.layers.push(layer);
+    }
+
+    handleDown(){
+        if(!this.allowScroll){
+            return;
+        }
+        var delay = 0;
+        var freeze = false;
+        this.allowScroll = false;
+        
+
+        this.containers.every((container) => {
+            if(container.canForward){
+                container.forward();
+                delay = container.delay;
+                this.scrollNow ++;
+                return false;
+            }
+            else{
+                if(container == this.containers[this.containers.length - 1]){
+                    this.layers[0].show();
+                    freeze = true;
+                }
+                return true;
+            }
+        });
+
+        if(!freeze)
+            setTimeout(() => {this.allowScroll = true}, delay);
+    }
+
+    handleUp(){
+        if(this.layers[0].isOut() && this.layers[0].showed){
+            this.freeze = false;
+            this.allowScroll = true;
+
+            this.layers[0].hide();
+
+            return;
+        }
+        if(!this.allowScroll){
+            return;
+        }
+        var delay = 0;
+        this.allowScroll = false;
+
+        this.revcontainers.every((container) => {
+            if(container.canBackward){
+                container.backward();
+                delay = container.delay;
+                this.scrollNow --;
+                return false;
+            }
+            else{
+                return true;
+            }
+        });
+
+        setTimeout(() => {this.allowScroll = true}, delay);
+    }
 }
 
 class Container{
-    constructor(containerSelector, screensSelector){
+    constructor(containerSelector, screensSelector, stepRatio = 1, stepRatioMobile = 1, delay = 0){
         this.container = document.querySelector(containerSelector);
         this.screens = document.querySelectorAll(screensSelector);
-        
+
         this.containerWidth = this.container.offsetWidth;
         this.containerHeight = this.container.offsetHeight;
         this.screensCount = this.screens.length;
 
         this.startTranslate = this.#getTranslateY(this.container);
-        this.stepRatio = 6;
         this.offset = this.startTranslate;
         this.limit = Math.abs(this.startTranslate) - this.containerHeight;
-        this.delay = 0;
+        this.delay = delay;
         this.epsilon = 50;
+        this.stepRatio = stepRatio;
 
         this.canForward = true;
         this.canBackward = false;
     }
 
     stepForwardCalculate(){
-        return 1;
+        return Math.round(this.offset - this.containerHeight / this.stepRatio);
     }
     stepBackwardCalculate(){
-        return 1;
-    }
-
-    forward(){
-
-        var step = this.stepForwardCalculate();
-
-        this.container.style.transform = "translateY(" + (step) + "px)";
-
-        this.offset = step;
-        this.counterEvents = 0;
-
-        if(this.#checkApprox(this.offset, this.limit, this.epsilon)){
-            this.offset = this.limit;
-            this.container.style.transform = "translateY(" + (this.offset) + "px)";
-        }
-        if(this.#checkApprox(this.offset, this.startTranslate, this.epsilon)){
-            this.offset = this.startTranslate;
-            this.container.style.transform = "translateY(" + (this.offset) + "px)";
-        }
-        
-        if(this.offset == this.startTranslate){
-            this.canForward = true;
-            this.canBackward = false;
-            
-            return;
-        }
-        if(this.offset < Math.abs(this.startTranslate) && this.offset > this.limit){
-            this.canForward = true;
-            this.canBackward = true;
-            
-            return;
-        }
-        if(this.offset == this.limit){
-            this.canForward = false;
-            this.canBackward = true;
-
-            return;
-        }
-    }
-
-    downward(){
-
-        var step = this.stepBackwardCalculate();
-
-        this.container.style.transform = "translateY(" + (step) + "px)";
-
-        this.offset = step;
-
-        if(this.#checkApprox(this.offset, this.limit, this.epsilon)){
-            this.offset = this.limit;
-            this.container.style.transform = "translateY(" + (this.offset) + "px)";
-        }
-        if(this.#checkApprox(this.offset, this.startTranslate, this.epsilon)){
-            this.offset = this.startTranslate;
-            this.container.style.transform = "translateY(" + (this.offset) + "px)";
-        }
-        
-        if(this.offset == this.startTranslate){
-            this.canForward = true;
-            this.canBackward = false;
-            
-            return;
-        }
-        if(Math.abs(this.offset) < Math.abs(this.startTranslate) && Math.abs(this.offset) > Math.abs(this.limit)){
-            this.canForward = true;
-            this.canBackward = true;
-            
-            return;
-        }
-        if(this.offset == this.limit){
-            this.canForward = false;
-            this.canBackward = true;
-
-            return;
-        }
+        return Math.round(this.offset + this.containerHeight / this.stepRatio);
     }
 
     #getTranslateY(target){
@@ -279,44 +147,83 @@ class Container{
     #checkApprox(num1, num2, epsilon){
         return Math.abs(num1 - num2) < epsilon;
     }
+
+    #isBetween(n, a, b){
+        return (n - a) * (n - b) < 0
+    }
+
+    #checkLimits(){
+        if(this.#checkApprox(this.offset, this.limit, this.epsilon)){
+            this.offset = this.limit;
+            this.container.style.transform = "translateY(" + (this.offset) + "px)";
+        }
+        if(this.#checkApprox(this.offset, this.startTranslate, this.epsilon)){
+            this.offset = this.startTranslate;
+            this.container.style.transform = "translateY(" + (this.offset) + "px)";
+        }
+    }
+
+    #setCans(){
+        if(this.offset == this.startTranslate){
+            this.canForward = true;
+            this.canBackward = false;
+            
+            return;
+        }
+        if(this.#isBetween(this.offset, this.startTranslate, this.limit)){
+            this.canForward = true;
+            this.canBackward = true;
+            
+            return;
+        }
+        if(this.offset == this.limit){
+            this.canForward = false;
+            this.canBackward = true;
+
+            return;
+        }
+    }
+
+    forward(){
+        var step = this.stepForwardCalculate();
+
+        this.container.style.transform = "translateY(" + (step) + "px)";
+        this.offset = step;
+
+        this.#checkLimits();
+
+        this.#setCans();
+    }
+
+    backward(){
+        var step = this.stepBackwardCalculate();
+
+        this.container.style.transform = "translateY(" + (step) + "px)";
+        this.offset = step;
+
+        this.#checkLimits();
+
+        this.#setCans();
+    }
 }
 
-class FirstContainer extends Container{
+class StartContainer extends Container{
     constructor(...args){
         super(...args);
-        this.stepRatio = this.screens.length;
-        this.limit = Math.abs(this.startTranslate) - this.containerHeight + this.screens[0].offsetHeight;
-    }
 
-    stepForwardCalculate(){
-        return Math.round(this.offset - this.containerHeight / this.screensCount);
-    }
-    
-    stepBackwardCalculate(){
-        return Math.round(this.offset + this.containerHeight / this.screensCount);
+        this.limit = Math.abs(this.startTranslate) - this.containerHeight + this.screens[this.screensCount - 1].offsetHeight;
     }
 }
 
 class BottomContainer extends Container{
     constructor(...args){
         super(...args);
-
-        this.stepRatio = 2;
-    }
-
-    stepForwardCalculate(){
-        return Math.round(this.offset - this.containerHeight / this.stepRatio);
-    }
-    stepBackwardCalculate(){
-        return Math.round(this.offset + this.containerHeight / this.stepRatio);
     }
 }
 
 class TopContainer extends Container{
     constructor(...args){
         super(...args);
-
-        this.stepRatio = 1;
     }
 
     stepForwardCalculate(){
@@ -328,25 +235,30 @@ class TopContainer extends Container{
     }
 }
 
-class TouchController{
-    constructor(){
-        this.touches = [];
+class Layer{
+    constructor(layerSelector){
+        this.layer = document.querySelector(layerSelector);
+
+        this.showed = false;
     }
 
-    touch(touch){
-        this.touches.push(touch.clientY);
+    show(){
+        this.layer.style.transform = "translateY(" + (0) + "px)";
+
+        document.body.style.setProperty('overflow', 'auto');
+
+        this.showed = true;
     }
 
-    clearTouches(){
-        this.touches = [];
+    hide(){
+        this.layer.style.transform = "translateY(" + this.layer.offsetHeight + "px)";
+
+        document.body.style.setProperty('overflow', 'hidden');
+
+        this.showed = false;
     }
 
-    directionY(){
-        if(this.touches.length <= 1){
-            return 0;
-        }
-        var dif = this.touches[this.touches.length - 1] - this.touches[0];
-
-        return dif;
+    isOut(){
+        return window.pageYOffset <= 0 ? true : false;
     }
 }
