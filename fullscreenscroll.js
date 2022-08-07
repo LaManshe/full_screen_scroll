@@ -24,33 +24,28 @@ export default class FSS{
         history.scrollRestoration = "manual";
     }
 
-    addContainer(containerSelector, screensSelector, stepRatio, stepRatioMobile, type = "default", selfDelay){
+    addContainer(containerSelector, screensSelector, stepRatio, type = "default", selfDelay){
         switch(type){
             case "start":
-                var container = new StartContainer(containerSelector, screensSelector, stepRatio, stepRatioMobile, selfDelay);
+                var container = new StartContainer(containerSelector, screensSelector, stepRatio, selfDelay);
                 this.containers.push(container);
                 break;
             
             case "bottom":
-                var container = new BottomContainer(containerSelector, screensSelector, stepRatio, stepRatioMobile, selfDelay);
+                var container = new BottomContainer(containerSelector, screensSelector, stepRatio, selfDelay);
                 this.containers.push(container);
                 break;
 
             case "top":
-                var container = new TopContainer(containerSelector, screensSelector, stepRatio, stepRatioMobile, selfDelay);
+                var container = new TopContainer(containerSelector, screensSelector, stepRatio, selfDelay);
                 this.containers.push(container);
                 break;
 
             default:
-                var container = new Container(containerSelector, screensSelector, stepRatio, stepRatioMobile, selfDelay);
+                var container = new Container(containerSelector, screensSelector, stepRatio, selfDelay);
                 this.containers.push(container);
                 break;
         }
-    }
-
-    addLayer(layerSelector){
-        var layer = new Layer(layerSelector);
-        this.layers.push(layer);
     }
 
     handleDown(){
@@ -132,6 +127,7 @@ export default class FSS{
         var zIndex = 100;
         args.forEach((element) => {
             element.forEach((container) => {
+                console.log(container);
                 container.container.style.zIndex = zIndex + "";
 
                 zIndex += 10;
@@ -141,7 +137,7 @@ export default class FSS{
 }
 
 class Container{
-    constructor(containerSelector, screensSelector, stepRatio = 1, stepRatioMobile = 1, delay = 0){
+    constructor(containerSelector, screensSelector, stepRatio = 1, delay = 0){
         this.container = document.querySelector(containerSelector);
         this.screens = document.querySelectorAll(screensSelector);
 
@@ -261,33 +257,5 @@ class TopContainer extends Container{
 
     stepBackwardCalculate(){
         return Math.round(this.offset - this.containerHeight / this.stepRatio);
-    }
-}
-
-class Layer{
-    constructor(layerSelector){
-        this.container = document.querySelector(layerSelector);
-
-        this.showed = false;
-    }
-
-    show(){
-        this.container.style.transform = "translateY(" + (0) + "px)";
-
-        document.body.style.setProperty('overflow', 'auto');
-
-        this.showed = true;
-    }
-
-    hide(){
-        this.container.style.transform = "translateY(" + this.container.offsetHeight + "px)";
-
-        document.body.style.setProperty('overflow', 'hidden');
-
-        this.showed = false;
-    }
-
-    isOut(){
-        return window.pageYOffset <= 0 ? true : false;
     }
 }
