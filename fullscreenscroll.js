@@ -61,7 +61,6 @@ export default class FSS{
         var freeze = false;
         this.allowScroll = false;
         
-
         this.containers.every((container) => {
             if(container.canForward){
                 container.forward();
@@ -71,8 +70,10 @@ export default class FSS{
             }
             else{
                 if(container == this.containers[this.containers.length - 1]){
-                    this.layers[0].show();
-                    freeze = true;
+                    if(this.layers.length > 0){
+                        this.layers[0].show();
+                        freeze = true;
+                    }
                 }
                 return true;
             }
@@ -83,12 +84,7 @@ export default class FSS{
     }
 
     handleUp(){
-        if(this.layers[0].isOut() && this.layers[0].showed){
-            this.freeze = false;
-            this.allowScroll = true;
-
-            this.layers[0].hide();
-
+        if(this.#unfreeze()){
             return;
         }
         if(!this.allowScroll){
@@ -110,6 +106,23 @@ export default class FSS{
         });
 
         setTimeout(() => {this.allowScroll = true}, delay);
+    }
+
+    #unfreeze(){
+        if(this.layers.length < 1){
+            return false;
+        }
+        if(this.layers[0].isOut() && this.layers[0].showed){
+            this.freeze = false;
+            this.allowScroll = true;
+
+            this.layers[0].hide();
+
+            return true;
+        }
+        else{
+            return false;
+        }
     }
 
     #set_zIndexes(...args){
