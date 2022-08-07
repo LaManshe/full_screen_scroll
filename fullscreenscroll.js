@@ -340,6 +340,10 @@ class DynamicNav{
         var containers = args[0];
 
         var nav = document.querySelector(".fss_nav");
+        if(!nav){
+            return;
+        }
+        
         var ul = document.createElement('ul');
         ul.setAttribute('class','nav-container');
 
